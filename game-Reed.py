@@ -1,5 +1,6 @@
 """
 Whack-a-Bot Water Hose Edition
+No image files needed
 """
 
 import arcade
@@ -10,7 +11,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 WINDOW_TITLE = "Whack-a-Bot!"
 
-# 4 holes at top
+# 4 holes
 HOLE_POSITIONS = [
     (140, 470),
     (320, 470),
@@ -23,14 +24,12 @@ VISIBLE_TIME = 2.0
 POINTS_PER_HIT = 10
 GAME_DURATION = 30.0
 
-# PARTNER-FRIENDLY IMAGE PATH
-PLAYER_IMAGE = "images/player.png"
-
 
 # ─────────────────────────────────────────────
 # Bot
 # ─────────────────────────────────────────────
 class Bot:
+
     def __init__(self, x, y):
 
         self.x = x
@@ -148,17 +147,9 @@ class WhackGame(arcade.Window):
 
         arcade.set_background_color((40, 30, 70))
 
-        # Player image
-        self.player_texture = arcade.load_texture(
-            PLAYER_IMAGE
-        )
-
-        # PLAYER POSITION (BOTTOM MIDDLE)
+        # Player position
         self.player_x = WINDOW_WIDTH // 2
         self.player_y = 90
-
-        self.player_width = 140
-        self.player_height = 140
 
         self.mouse_x = 0
         self.mouse_y = 0
@@ -177,6 +168,93 @@ class WhackGame(arcade.Window):
 
         self.bots = []
         self.water_shots = []
+
+    # ─────────────────────────────────
+
+    def draw_player(self):
+
+        x = self.player_x
+        y = self.player_y
+
+        # Legs
+        arcade.draw_line(
+            x - 15,
+            y - 40,
+            x - 5,
+            y - 80,
+            arcade.color.BLACK,
+            5
+        )
+
+        arcade.draw_line(
+            x + 15,
+            y - 40,
+            x + 5,
+            y - 80,
+            arcade.color.BLACK,
+            5
+        )
+
+        # Body
+        arcade.draw_rectangle_filled(
+            x,
+            y,
+            40,
+            60,
+            arcade.color.BLUE
+        )
+
+        # Arms
+        arcade.draw_line(
+            x - 20,
+            y + 10,
+            x - 45,
+            y - 5,
+            arcade.color.BLACK,
+            5
+        )
+
+        arcade.draw_line(
+            x + 20,
+            y + 10,
+            x + 50,
+            y + 5,
+            arcade.color.BLACK,
+            5
+        )
+
+        # Hose
+        arcade.draw_line(
+            x + 50,
+            y + 5,
+            x + 80,
+            y + 25,
+            arcade.color.DARK_GRAY,
+            6
+        )
+
+        # Head
+        arcade.draw_circle_filled(
+            x,
+            y + 55,
+            20,
+            arcade.color.BISQUE
+        )
+
+        # Eyes
+        arcade.draw_circle_filled(
+            x - 6,
+            y + 60,
+            2,
+            arcade.color.BLACK
+        )
+
+        arcade.draw_circle_filled(
+            x + 6,
+            y + 60,
+            2,
+            arcade.color.BLACK
+        )
 
     # ─────────────────────────────────
 
@@ -221,24 +299,16 @@ class WhackGame(arcade.Window):
         for shot in self.water_shots:
             shot.draw()
 
-        # Draw player
-        arcade.draw_texture_rect(
-            self.player_texture,
-            arcade.rect.XYWH(
-                self.player_x,
-                self.player_y,
-                self.player_width,
-                self.player_height
-            )
-        )
+        # Draw player sprite
+        self.draw_player()
 
-        # Bottom-right HUD background
+        # HUD background
         arcade.draw_lrbt_rectangle_filled(
             590,
             790,
             10,
             90,
-            (20, 20, 40, 200)
+            (20, 20, 40)
         )
 
         # Score
@@ -258,6 +328,16 @@ class WhackGame(arcade.Window):
             25,
             arcade.color.SKY_BLUE,
             18,
+            bold=True
+        )
+
+        # Title
+        arcade.draw_text(
+            "WATER WHACK",
+            20,
+            25,
+            arcade.color.WHITE,
+            24,
             bold=True
         )
 
@@ -288,7 +368,6 @@ class WhackGame(arcade.Window):
         if self.game_over:
             return
 
-        # Timer
         self.time_left -= delta_time
 
         if self.time_left <= 0:
@@ -329,7 +408,7 @@ class WhackGame(arcade.Window):
             if shot.alive
         ]
 
-        # Collision
+        # Collision detection
         for shot in self.water_shots:
 
             for bot in self.bots:
@@ -376,10 +455,10 @@ class WhackGame(arcade.Window):
             self.reset()
             return
 
-        # Shoot water from hose/player
+        # Shoot water
         shot = WaterShot(
-            self.player_x,
-            self.player_y + 20,
+            self.player_x + 80,
+            self.player_y + 25,
             x,
             y
         )

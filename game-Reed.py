@@ -1,6 +1,6 @@
 """
-Whack-a-Bot Water Hose Edition
-No image files needed
+Water Whack-a-Mole
+Fixed for newer Arcade versions
 """
 
 import arcade
@@ -9,9 +9,9 @@ import math
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-WINDOW_TITLE = "Whack-a-Bot!"
+WINDOW_TITLE = "Water Whack-a-Mole"
 
-# 4 holes
+# Hole positions
 HOLE_POSITIONS = [
     (140, 470),
     (320, 470),
@@ -55,7 +55,7 @@ class Bot:
             (20, 80, 20)
         )
 
-        # Main bot
+        # Body
         arcade.draw_circle_filled(
             self.x,
             self.body_y,
@@ -151,9 +151,6 @@ class WhackGame(arcade.Window):
         self.player_x = WINDOW_WIDTH // 2
         self.player_y = 90
 
-        self.mouse_x = 0
-        self.mouse_y = 0
-
         self.reset()
 
     # ─────────────────────────────────
@@ -195,10 +192,10 @@ class WhackGame(arcade.Window):
             5
         )
 
-        # Body
-        arcade.draw_rectangle_filled(
-            x,
-            y,
+        # Body (FIXED)
+        arcade.draw_lbwh_rectangle_filled(
+            x - 20,
+            y - 30,
             40,
             60,
             arcade.color.BLUE
@@ -263,10 +260,10 @@ class WhackGame(arcade.Window):
         self.clear()
 
         # Ground
-        arcade.draw_lrbt_rectangle_filled(
+        arcade.draw_lbwh_rectangle_filled(
+            0,
             0,
             WINDOW_WIDTH,
-            0,
             160,
             (55, 45, 90)
         )
@@ -299,15 +296,15 @@ class WhackGame(arcade.Window):
         for shot in self.water_shots:
             shot.draw()
 
-        # Draw player sprite
+        # Draw player
         self.draw_player()
 
         # HUD background
-        arcade.draw_lrbt_rectangle_filled(
+        arcade.draw_lbwh_rectangle_filled(
             590,
-            790,
             10,
-            90,
+            190,
+            80,
             (20, 20, 40)
         )
 
@@ -399,7 +396,7 @@ class WhackGame(arcade.Window):
             if bot.timer < VISIBLE_TIME
         ]
 
-        # Update water
+        # Update water shots
         for shot in self.water_shots:
             shot.update()
 
@@ -411,7 +408,7 @@ class WhackGame(arcade.Window):
         # Collision detection
         for shot in self.water_shots:
 
-            for bot in self.bots:
+            for bot in self.bots[:]:
 
                 distance = math.hypot(
                     shot.x - bot.x,
@@ -422,8 +419,7 @@ class WhackGame(arcade.Window):
 
                     self.score += POINTS_PER_HIT
 
-                    if bot in self.bots:
-                        self.bots.remove(bot)
+                    self.bots.remove(bot)
 
                     shot.alive = False
 
@@ -431,20 +427,11 @@ class WhackGame(arcade.Window):
 
     def spawn_bot(self):
 
-        x, y = random.choice(
-            HOLE_POSITIONS
-        )
+        x, y = random.choice(HOLE_POSITIONS)
 
         self.bots.append(
             Bot(x, y)
         )
-
-    # ─────────────────────────────────
-
-    def on_mouse_motion(self, x, y, dx, dy):
-
-        self.mouse_x = x
-        self.mouse_y = y
 
     # ─────────────────────────────────
 

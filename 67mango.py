@@ -1,6 +1,6 @@
 """
 Water Whack-a-Mole - Enhanced Edition
-Arrow keys or WASD to aim and shoot
+Left/Right arrow keys to select tank
 Click or SPACE to shoot water
 """
 
@@ -24,6 +24,7 @@ SPAWN_INTERVAL = 1.2
 VISIBLE_TIME = 2.0
 POINTS_PER_HIT = 10
 GAME_DURATION = 30.0
+NUM_HOLES = 4
 
 
 # ─────────────────────────────────────────────
@@ -149,14 +150,15 @@ class WhackGame(arcade.Window):
         arcade.set_background_color((40, 30, 70))
 
         # Player position
-        self.player_x = WINDOW_WIDTH // 2
+        self.player_x = WINDOW_WIDTH // 2 - 80
         self.player_y = 90
 
-        # Aiming direction (angle in radians)
-        self.aim_angle = 0
+        # Tank position (to the right of player)
+        self.tank_x = self.player_x + 150
+        self.tank_y = self.player_y + 20
 
-        # Keyboard state
-        self.keys_pressed = set()
+        # Currently selected tank index (0-3)
+        self.current_tank = 0
 
         self.reset()
 
@@ -176,36 +178,36 @@ class WhackGame(arcade.Window):
     # ─────────────────────────────────
 
     def draw_water_tank(self):
-        """Draw the water tank on the player's back"""
+        """Draw the water tank on the right side"""
 
-        x = self.player_x
-        y = self.player_y
+        x = self.tank_x
+        y = self.tank_y
 
-        # Tank body (large rectangle on back)
+        # Tank body (large rectangle)
         arcade.draw_lbwh_rectangle_filled(
-            x - 15,
-            y + 5,
-            30,
-            45,
+            x - 20,
+            y - 30,
+            40,
+            60,
             (100, 150, 200)
         )
 
         # Tank outline
         arcade.draw_lbwh_rectangle_outline(
-            x - 15,
-            y + 5,
-            30,
-            45,
+            x - 20,
+            y - 30,
+            40,
+            60,
             arcade.color.DARK_BLUE,
             3
         )
 
-        # Water level inside tank (animated effect)
-        water_level = 35
+        # Water level inside tank
+        water_level = 45
         arcade.draw_lbwh_rectangle_filled(
-            x - 13,
-            y + 7,
-            26,
+            x - 18,
+            y - 28,
+            36,
             water_level,
             (80, 200, 255)
         )
@@ -213,68 +215,82 @@ class WhackGame(arcade.Window):
         # Tank cap
         arcade.draw_circle_filled(
             x,
-            y + 50,
-            8,
+            y + 30,
+            9,
             arcade.color.DARK_GRAY
         )
 
         # Hose connection point
         arcade.draw_circle_filled(
-            x + 12,
-            y + 35,
-            5,
+            x - 18,
+            y,
+            6,
             arcade.color.DARK_GRAY
         )
 
-    def draw_hose_and_nozzle(self):
-        """Draw the hose and nozzle based on aim angle"""
+    def draw_hose_to_target(self):
+        """Draw the hose from tank to selected hole"""
 
-        x = self.player_x
-        y = self.player_y
+        # Get the target hole position
+        target_x, target_y = HOLE_POSITIONS[self.current_tank]
 
         # Hose starts from tank connection
-        hose_start_x = x + 12
-        hose_start_y = y + 35
+        hose_start_x = self.tank_x - 18
+        hose_start_y = self.tank_y
 
-        # Calculate hose end point (nozzle position)
-        hose_length = 65
-        hose_end_x = hose_start_x + math.cos(self.aim_angle) * hose_length
-        hose_end_y = hose_start_y + math.sin(self.aim_angle) * hose_length
-
-        # Draw hose (curved appearance with two lines)
+        # Draw main hose line (thick)
         arcade.draw_line(
             hose_start_x,
             hose_start_y,
-            hose_end_x,
-            hose_end_y,
+            self.player_x + 30,
+            self.player_y + 15,
             arcade.color.DARK_GRAY,
-            8
+            7
         )
 
-        # Hose highlight
+        # Hose highlight (lighter line)
         arcade.draw_line(
             hose_start_x,
             hose_start_y,
-            hose_end_x,
-            hose_end_y,
+            self.player_x + 30,
+            self.player_y + 15,
             (150, 150, 150),
-            4
+            3
         )
 
-        # Nozzle (circular spray head)
+        # Nozzle at player's hands
         arcade.draw_circle_filled(
-            hose_end_x,
-            hose_end_y,
+            self.player_x + 30,
+            self.player_y + 15,
             6,
             arcade.color.DARK_GRAY
         )
 
         # Nozzle tip
         arcade.draw_circle_filled(
-            hose_end_x,
-            hose_end_y,
+            self.player_x + 30,
+            self.player_y + 15,
             3,
             arcade.color.BLACK
+        )
+
+        # Draw aiming indicator line to target hole
+        arcade.draw_line(
+            self.player_x + 30,
+            self.player_y + 15,
+            target_x,
+            target_y,
+            arcade.color.YELLOW,
+            2
+        )
+
+        # Crosshair at target
+        arcade.draw_circle_outline(
+            target_x,
+            target_y,
+            35,
+            arcade.color.YELLOW,
+            2
         )
 
     def draw_player(self):
@@ -310,16 +326,17 @@ class WhackGame(arcade.Window):
             arcade.color.BLUE
         )
 
-        # Arms
+        # Left arm (holding nozzle)
         arcade.draw_line(
             x - 20,
             y + 10,
-            x - 35,
-            y - 15,
+            x + 20,
+            y + 10,
             arcade.color.BLACK,
             5
         )
 
+        # Right arm
         arcade.draw_line(
             x + 20,
             y + 10,
@@ -352,12 +369,6 @@ class WhackGame(arcade.Window):
             arcade.color.BLACK
         )
 
-        # Draw water tank on back
-        self.draw_water_tank()
-
-        # Draw hose and nozzle
-        self.draw_hose_and_nozzle()
-
     # ─────────────────────────────────
 
     def on_draw(self):
@@ -373,8 +384,8 @@ class WhackGame(arcade.Window):
             (55, 45, 90)
         )
 
-        # Draw holes
-        for x, y in HOLE_POSITIONS:
+        # Draw holes with indicators
+        for i, (x, y) in enumerate(HOLE_POSITIONS):
 
             arcade.draw_ellipse_filled(
                 x,
@@ -393,6 +404,17 @@ class WhackGame(arcade.Window):
                 3
             )
 
+            # Highlight current target
+            if i == self.current_tank:
+                arcade.draw_ellipse_outline(
+                    x,
+                    y,
+                    120,
+                    45,
+                    arcade.color.YELLOW,
+                    4
+                )
+
         # Draw bots
         for bot in self.bots:
             bot.draw()
@@ -400,6 +422,12 @@ class WhackGame(arcade.Window):
         # Draw water
         for shot in self.water_shots:
             shot.draw()
+
+        # Draw water tank
+        self.draw_water_tank()
+
+        # Draw hose and aiming line
+        self.draw_hose_to_target()
 
         # Draw player
         self.draw_player()
@@ -445,7 +473,7 @@ class WhackGame(arcade.Window):
 
         # Control instructions
         arcade.draw_text(
-            "Arrows/WASD to aim | Space/Click to shoot",
+            "← → Arrows to select | Space/Click to shoot",
             20,
             530,
             arcade.color.LIGHT_GRAY,
@@ -460,7 +488,7 @@ class WhackGame(arcade.Window):
                 WINDOW_HEIGHT // 2,
                 400,
                 200,
-                (0, 0, 0, 200)
+                (0, 0, 0)
             )
 
             arcade.draw_text(
@@ -473,11 +501,19 @@ class WhackGame(arcade.Window):
             )
 
             arcade.draw_text(
+                f"FINAL SCORE: {self.score}",
+                260,
+                280,
+                arcade.color.YELLOW,
+                18
+            )
+
+            arcade.draw_text(
                 "CLICK or SPACE to RESTART",
                 245,
-                270,
+                230,
                 arcade.color.LIGHT_GRAY,
-                16
+                14
             )
 
     # ─────────────────────────────────
@@ -493,9 +529,6 @@ class WhackGame(arcade.Window):
 
             self.game_over = True
             return
-
-        # Update aim angle based on keyboard input
-        self.update_aim()
 
         # Spawn bots
         self.spawn_timer += delta_time
@@ -550,26 +583,6 @@ class WhackGame(arcade.Window):
 
     # ─────────────────────────────────
 
-    def update_aim(self):
-        """Update aim angle based on keyboard input"""
-
-        dx = 0
-        dy = 0
-
-        # Arrow keys and WASD
-        if arcade.key.UP in self.keys_pressed or arcade.key.W in self.keys_pressed:
-            dy += 1
-        if arcade.key.DOWN in self.keys_pressed or arcade.key.S in self.keys_pressed:
-            dy -= 1
-        if arcade.key.LEFT in self.keys_pressed or arcade.key.A in self.keys_pressed:
-            dx -= 1
-        if arcade.key.RIGHT in self.keys_pressed or arcade.key.D in self.keys_pressed:
-            dx += 1
-
-        # Calculate angle if there's input
-        if dx != 0 or dy != 0:
-            self.aim_angle = math.atan2(dy, dx)
-
     def spawn_bot(self):
 
         x, y = random.choice(HOLE_POSITIONS)
@@ -583,21 +596,26 @@ class WhackGame(arcade.Window):
     def on_key_press(self, key, modifiers):
         """Handle key press"""
 
-        self.keys_pressed.add(key)
+        if self.game_over:
+            if key == arcade.key.SPACE:
+                self.reset()
+            return
+
+        # Left arrow - select previous tank
+        if key == arcade.key.LEFT:
+            self.current_tank = (self.current_tank - 1) % NUM_HOLES
+
+        # Right arrow - select next tank
+        elif key == arcade.key.RIGHT:
+            self.current_tank = (self.current_tank + 1) % NUM_HOLES
 
         # Spacebar to shoot
-        if key == arcade.key.SPACE:
+        elif key == arcade.key.SPACE:
             self.shoot_water()
-
-    def on_key_release(self, key, modifiers):
-        """Handle key release"""
-
-        self.keys_pressed.discard(key)
 
     def on_mouse_press(self, x, y, button, modifiers):
 
         if self.game_over:
-
             self.reset()
             return
 
@@ -605,23 +623,17 @@ class WhackGame(arcade.Window):
         self.shoot_water()
 
     def shoot_water(self):
-        """Fire water shot in the direction of aim"""
+        """Fire water shot at the selected hole"""
 
         if self.game_over:
             return
 
-        # Calculate nozzle position
-        hose_start_x = self.player_x + 12
-        hose_start_y = self.player_y + 35
+        # Get target hole
+        target_x, target_y = HOLE_POSITIONS[self.current_tank]
 
-        hose_length = 65
-        nozzle_x = hose_start_x + math.cos(self.aim_angle) * hose_length
-        nozzle_y = hose_start_y + math.sin(self.aim_angle) * hose_length
-
-        # Calculate target point ahead of nozzle
-        target_distance = 500
-        target_x = nozzle_x + math.cos(self.aim_angle) * target_distance
-        target_y = nozzle_y + math.sin(self.aim_angle) * target_distance
+        # Nozzle position
+        nozzle_x = self.player_x + 30
+        nozzle_y = self.player_y + 15
 
         # Create water shot
         shot = WaterShot(

@@ -616,6 +616,8 @@ class WhackGame(arcade.Window):
             self.spawn_timer = 0
             self.spawn_bot()
 
+        self.update_water_stream(delta_time)
+
         # Update bots
         for bot in self.bots:
 
@@ -637,8 +639,6 @@ class WhackGame(arcade.Window):
             self.game_over = True
             self.stop_spraying()
             return
-
-        self.update_water_stream(delta_time)
 
     # ─────────────────────────────────
 

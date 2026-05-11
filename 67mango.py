@@ -257,6 +257,11 @@ class WhackGame(arcade.Window):
     def draw_hose_to_target(self):
 
         target_x, target_y = HOLE_POSITIONS[self.current_tank]
+        spray_target = self.get_spray_target()
+
+        if spray_target is not None:
+            target_x = spray_target.x
+            target_y = spray_target.body_y
 
         hose_start_x = self.tank_x - 18
         hose_start_y = self.tank_y
@@ -712,12 +717,36 @@ class WhackGame(arcade.Window):
 
         self.water_damage_timer = WATER_DAMAGE_INTERVAL
 
-        target_x, target_y = HOLE_POSITIONS[self.current_tank]
+        target_bot = self.get_spray_target()
+
+        if target_bot is None:
+            return
+
+        target_bot.water_hits += 1
+
+        if target_bot.water_hits >= HITS_TO_FILL:
+
+            target_bot.defeated = True
+            target_bot.defeat_timer = 1.5
+
+            self.score += POINTS_PER_HIT
+
+    # ─────────────────────────────────
+
+    def get_spray_target(self):
 
         nozzle_x = self.player_x + 30
         nozzle_y = self.player_y + 15
+        target_x, target_y = HOLE_POSITIONS[self.current_tank]
 
-        for bot in self.bots[:]:
+        best_bot = None
+        best_distance = 999999
+        best_progress = 999999
+
+        for bot in self.bots:
+
+            if bot.defeated:
+                continue
 
             distance = distance_to_line_segment(
                 bot.x,
@@ -728,16 +757,23 @@ class WhackGame(arcade.Window):
                 target_y
             )
 
-            if distance < 35 and not bot.defeated:
+            if distance > 35:
+                continue
 
-                bot.water_hits += 1
+            progress = math.hypot(
+                bot.x - nozzle_x,
+                bot.body_y - nozzle_y
+            )
 
-                if bot.water_hits >= HITS_TO_FILL:
+            if (
+                distance < best_distance or
+                (distance == best_distance and progress < best_progress)
+            ):
+                best_bot = bot
+                best_distance = distance
+                best_progress = progress
 
-                    bot.defeated = True
-                    bot.defeat_timer = 1.5
-
-                    self.score += POINTS_PER_HIT
+        return best_bot
 
     # ─────────────────────────────────
 

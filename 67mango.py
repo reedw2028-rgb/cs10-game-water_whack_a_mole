@@ -49,7 +49,7 @@ class Bot:
     def body_y(self):
         return self.y + 40 * self.pop
 
-    def draw(self):
+    def draw(self, is_being_sprayed=False):
 
         if self.pop <= 0:
             return
@@ -105,11 +105,13 @@ class Bot:
         )
 
         # Water fill bar
-        bar_width = 86
-        bar_height = 10
+        bar_width = 96
+        bar_height = 12
         bar_x = self.x - bar_width / 2
         bar_y = self.body_y - 36
         fill_percent = min(1, self.water_fill)
+        bar_outline_color = arcade.color.YELLOW if is_being_sprayed else arcade.color.WHITE
+        bar_fill_color = (135, 235, 255) if is_being_sprayed else (70, 205, 255)
 
         arcade.draw_lbwh_rectangle_filled(
             bar_x,
@@ -124,7 +126,7 @@ class Bot:
             bar_y,
             bar_width * fill_percent,
             bar_height,
-            (70, 205, 255)
+            bar_fill_color
         )
 
         arcade.draw_lbwh_rectangle_outline(
@@ -132,7 +134,7 @@ class Bot:
             bar_y,
             bar_width,
             bar_height,
-            arcade.color.WHITE,
+            bar_outline_color,
             2
         )
 
@@ -476,9 +478,11 @@ class WhackGame(arcade.Window):
                     4
                 )
 
+        active_spray_target = self.get_spray_target() if self.spraying else None
+
         # Bots
         for bot in self.bots:
-            bot.draw()
+            bot.draw(bot is active_spray_target)
 
         # Tank
         self.draw_water_tank()
@@ -695,7 +699,10 @@ class WhackGame(arcade.Window):
         if target_bot is None:
             return
 
-        target_bot.water_fill += delta_time / WATER_FILL_SECONDS
+        target_bot.water_fill = min(
+            1,
+            target_bot.water_fill + delta_time / WATER_FILL_SECONDS
+        )
 
         if target_bot.water_fill >= 1:
 

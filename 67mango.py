@@ -26,7 +26,7 @@ VISIBLE_TIME = 4.5
 POINTS_PER_DATA_CENTER = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
-WATER_FILL_SECONDS = 2.0
+WATER_FILL_SECONDS = 1.5
 
 
 # ─────────────────────────────────────────────

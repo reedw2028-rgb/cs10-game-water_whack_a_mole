@@ -27,6 +27,7 @@ POINTS_PER_DATA_CENTER = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
 WATER_FILL_SECONDS = 1.5
+WATER_DRAIN_PER_SECOND = 0.14
 
 
 # ─────────────────────────────────────────────
@@ -203,6 +204,7 @@ class WhackGame(arcade.Window):
 
         self.bots = []
         self.spraying = False
+        self.water_level = 1.0
 
     # ─────────────────────────────────
 
@@ -210,39 +212,56 @@ class WhackGame(arcade.Window):
 
         x = self.tank_x
         y = self.tank_y
+        tank_width = 68
+        tank_height = 112
+        tank_x = x - tank_width / 2
+        tank_y = y - tank_height / 2
+        water_padding = 5
+        water_width = tank_width - water_padding * 2
+        water_max_height = tank_height - water_padding * 2
+        water_height = water_max_height * self.water_level
 
         # Tank body
         arcade.draw_lbwh_rectangle_filled(
-            x - 20,
-            y - 30,
-            40,
-            60,
-            (100, 150, 200)
+            tank_x,
+            tank_y,
+            tank_width,
+            tank_height,
+            (80, 120, 165)
         )
 
         arcade.draw_lbwh_rectangle_outline(
-            x - 20,
-            y - 30,
-            40,
-            60,
+            tank_x,
+            tank_y,
+            tank_width,
+            tank_height,
             arcade.color.DARK_BLUE,
             3
         )
 
         # Water inside
         arcade.draw_lbwh_rectangle_filled(
-            x - 18,
-            y - 28,
-            36,
-            45,
+            tank_x + water_padding,
+            tank_y + water_padding,
+            water_width,
+            water_height,
             (80, 200, 255)
+        )
+
+        arcade.draw_lbwh_rectangle_outline(
+            tank_x + water_padding,
+            tank_y + water_padding,
+            water_width,
+            water_max_height,
+            (185, 235, 255),
+            2
         )
 
         # Cap
         arcade.draw_circle_filled(
             x,
-            y + 30,
-            9,
+            tank_y + tank_height + 5,
+            12,
             arcade.color.DARK_GRAY
         )
 
@@ -257,7 +276,7 @@ class WhackGame(arcade.Window):
             target_x = spray_target.x
             target_y = spray_target.body_y
 
-        hose_start_x = self.tank_x - 18
+        hose_start_x = self.tank_x - 34
         hose_start_y = self.tank_y
 
         # Main hose
@@ -288,7 +307,7 @@ class WhackGame(arcade.Window):
             arcade.color.DARK_GRAY
         )
 
-        if self.spraying:
+        if self.spraying and self.water_level > 0:
 
             # Continuous water blast
             arcade.draw_line(
@@ -521,6 +540,15 @@ class WhackGame(arcade.Window):
         )
 
         arcade.draw_text(
+            f"WATER: {int(self.water_level * 100)}%",
+            610,
+            5,
+            (80, 200, 255),
+            14,
+            bold=True
+        )
+
+        arcade.draw_text(
             "WATER WHACK",
             20,
             25,
@@ -679,6 +707,9 @@ class WhackGame(arcade.Window):
         if self.game_over:
             return
 
+        if self.water_level <= 0:
+            return
+
         self.spraying = True
 
     # ─────────────────────────────────
@@ -692,6 +723,15 @@ class WhackGame(arcade.Window):
     def update_water_stream(self, delta_time):
 
         if not self.spraying:
+            return
+
+        self.water_level = max(
+            0,
+            self.water_level - WATER_DRAIN_PER_SECOND * delta_time
+        )
+
+        if self.water_level <= 0:
+            self.stop_spraying()
             return
 
         target_bot = self.get_spray_target()

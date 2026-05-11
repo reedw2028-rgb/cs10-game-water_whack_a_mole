@@ -1,7 +1,7 @@
 """
 Water Whack-a-Mole - Enhanced Edition
 Arrow keys to aim
-SPACE or mouse click to spray water
+Hold SPACE or mouse click to spray water
 """
 
 import arcade
@@ -27,6 +27,7 @@ POINTS_PER_HIT = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
 HITS_TO_FILL = 3
+WATER_DAMAGE_INTERVAL = 0.35
 
 
 # ─────────────────────────────────────────────
@@ -144,77 +145,27 @@ class Bot:
 
 
 # ─────────────────────────────────────────────
-# Water Stream
+# Water Helper
 # ─────────────────────────────────────────────
-class WaterShot:
+def distance_to_line_segment(px, py, x1, y1, x2, y2):
 
-    def __init__(self, start_x, start_y, target_x, target_y):
+    line_dx = x2 - x1
+    line_dy = y2 - y1
+    line_length = line_dx * line_dx + line_dy * line_dy
 
-        self.x = start_x
-        self.y = start_y
+    if line_length == 0:
+        return math.hypot(px - x1, py - y1)
 
-        angle = math.atan2(
-            target_y - start_y,
-            target_x - start_x
-        )
+    point_position = (
+        (px - x1) * line_dx + (py - y1) * line_dy
+    ) / line_length
 
-        speed = 18
+    point_position = max(0, min(1, point_position))
 
-        self.dx = math.cos(angle) * speed
-        self.dy = math.sin(angle) * speed
+    closest_x = x1 + point_position * line_dx
+    closest_y = y1 + point_position * line_dy
 
-        self.alive = True
-
-        # Water trail
-        self.trail = []
-
-    def update(self):
-
-        self.trail.append((self.x, self.y))
-
-        if len(self.trail) > 10:
-            self.trail.pop(0)
-
-        self.x += self.dx
-        self.y += self.dy
-
-        if (
-            self.x < 0 or
-            self.x > WINDOW_WIDTH or
-            self.y < 0 or
-            self.y > WINDOW_HEIGHT
-        ):
-            self.alive = False
-
-    def draw(self):
-
-        # Draw stream trail
-        for i, (tx, ty) in enumerate(self.trail):
-
-            size = max(2, i)
-
-            arcade.draw_circle_filled(
-                tx,
-                ty,
-                size,
-                (100, 220, 255)
-            )
-
-        # Main water head
-        arcade.draw_circle_filled(
-            self.x,
-            self.y,
-            8,
-            arcade.color.SKY_BLUE
-        )
-
-        arcade.draw_circle_outline(
-            self.x,
-            self.y,
-            11,
-            arcade.color.WHITE,
-            2
-        )
+    return math.hypot(px - closest_x, py - closest_y)
 
 
 # ─────────────────────────────────────────────
@@ -256,7 +207,8 @@ class WhackGame(arcade.Window):
         self.game_over = False
 
         self.bots = []
-        self.water_shots = []
+        self.spraying = False
+        self.water_damage_timer = 0
 
     # ─────────────────────────────────
 
@@ -337,24 +289,62 @@ class WhackGame(arcade.Window):
             arcade.color.DARK_GRAY
         )
 
-        # Water guide
-        arcade.draw_line(
-            self.player_x + 30,
-            self.player_y + 15,
-            target_x,
-            target_y,
-            (120, 200, 255),
-            4
-        )
+        if self.spraying:
 
-        arcade.draw_line(
-            self.player_x + 30,
-            self.player_y + 15,
-            target_x,
-            target_y,
-            arcade.color.WHITE,
-            1
-        )
+            # Continuous water blast
+            arcade.draw_line(
+                self.player_x + 30,
+                self.player_y + 15,
+                target_x,
+                target_y,
+                (65, 190, 255),
+                16
+            )
+
+            arcade.draw_line(
+                self.player_x + 30,
+                self.player_y + 15,
+                target_x,
+                target_y,
+                (145, 235, 255),
+                9
+            )
+
+            arcade.draw_line(
+                self.player_x + 30,
+                self.player_y + 15,
+                target_x,
+                target_y,
+                arcade.color.WHITE,
+                3
+            )
+
+            arcade.draw_circle_filled(
+                target_x,
+                target_y,
+                17,
+                (105, 225, 255)
+            )
+
+            arcade.draw_circle_outline(
+                target_x,
+                target_y,
+                24,
+                arcade.color.WHITE,
+                3
+            )
+
+        else:
+
+            # Aim guide
+            arcade.draw_line(
+                self.player_x + 30,
+                self.player_y + 15,
+                target_x,
+                target_y,
+                (120, 200, 255),
+                2
+            )
 
         # Target indicator
         arcade.draw_circle_outline(
@@ -493,10 +483,6 @@ class WhackGame(arcade.Window):
         for bot in self.bots:
             bot.draw()
 
-        # Water stream
-        for shot in self.water_shots:
-            shot.draw()
-
         # Tank
         self.draw_water_tank()
 
@@ -543,7 +529,7 @@ class WhackGame(arcade.Window):
         )
 
         arcade.draw_text(
-            "← → to aim | SPACE or CLICK to spray",
+            "← → to aim | Hold SPACE or CLICK to spray",
             20,
             530,
             arcade.color.LIGHT_GRAY,
@@ -635,39 +621,7 @@ class WhackGame(arcade.Window):
 
                     self.bots.remove(bot)
 
-        # Update water
-        for shot in self.water_shots:
-            shot.update()
-
-        self.water_shots = [
-            shot for shot in self.water_shots
-            if shot.alive
-        ]
-
-        # Collision detection
-        for shot in self.water_shots:
-
-            for bot in self.bots[:]:
-
-                distance = math.hypot(
-                    shot.x - bot.x,
-                    shot.y - bot.body_y
-                )
-
-                if distance < 30 and not bot.defeated:
-
-                    shot.alive = False
-
-                    # Add water hit
-                    bot.water_hits += 1
-
-                    # Fully soaked
-                    if bot.water_hits >= HITS_TO_FILL:
-
-                        bot.defeated = True
-                        bot.defeat_timer = 1.5
-
-                        self.score += POINTS_PER_HIT
+        self.update_water_stream(delta_time)
 
     # ─────────────────────────────────
 
@@ -702,7 +656,14 @@ class WhackGame(arcade.Window):
 
         elif key == arcade.key.SPACE:
 
-            self.shoot_water()
+            self.start_spraying()
+
+    # ─────────────────────────────────
+
+    def on_key_release(self, key, modifiers):
+
+        if key == arcade.key.SPACE:
+            self.stop_spraying()
 
     # ─────────────────────────────────
 
@@ -713,28 +674,76 @@ class WhackGame(arcade.Window):
             self.reset()
             return
 
-        self.shoot_water()
+        self.start_spraying()
 
     # ─────────────────────────────────
 
-    def shoot_water(self):
+    def on_mouse_release(self, x, y, button, modifiers):
+
+        self.stop_spraying()
+
+    # ─────────────────────────────────
+
+    def start_spraying(self):
 
         if self.game_over:
             return
+
+        self.spraying = True
+        self.water_damage_timer = 0
+
+    # ─────────────────────────────────
+
+    def stop_spraying(self):
+
+        self.spraying = False
+
+    # ─────────────────────────────────
+
+    def update_water_stream(self, delta_time):
+
+        if not self.spraying:
+            return
+
+        self.water_damage_timer -= delta_time
+
+        if self.water_damage_timer > 0:
+            return
+
+        self.water_damage_timer = WATER_DAMAGE_INTERVAL
 
         target_x, target_y = HOLE_POSITIONS[self.current_tank]
 
         nozzle_x = self.player_x + 30
         nozzle_y = self.player_y + 15
 
-        shot = WaterShot(
-            nozzle_x,
-            nozzle_y,
-            target_x,
-            target_y
-        )
+        for bot in self.bots[:]:
 
-        self.water_shots.append(shot)
+            distance = distance_to_line_segment(
+                bot.x,
+                bot.body_y,
+                nozzle_x,
+                nozzle_y,
+                target_x,
+                target_y
+            )
+
+            if distance < 35 and not bot.defeated:
+
+                bot.water_hits += 1
+
+                if bot.water_hits >= HITS_TO_FILL:
+
+                    bot.defeated = True
+                    bot.defeat_timer = 1.5
+
+                    self.score += POINTS_PER_HIT
+
+    # ─────────────────────────────────
+
+    def shoot_water(self):
+
+        self.start_spraying()
 
 
 # ─────────────────────────────────────────────

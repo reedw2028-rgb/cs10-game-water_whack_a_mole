@@ -26,6 +26,7 @@ VISIBLE_TIME = 4.5
 POINTS_PER_HIT = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
+HITS_TO_FILL = 3
 
 
 # ─────────────────────────────────────────────
@@ -55,48 +56,90 @@ class Bot:
         if self.pop <= 0:
             return
 
-        color = arcade.color.LIME_GREEN
+        text_color = arcade.color.WHITE
 
         # Change color while filling with water
         if self.water_hits == 1:
-            color = arcade.color.AQUAMARINE
+            text_color = arcade.color.AQUAMARINE
 
         elif self.water_hits >= 2:
-            color = arcade.color.SKY_BLUE
+            text_color = arcade.color.SKY_BLUE
 
         # Final soaked state
         if self.defeated:
-            color = arcade.color.BLUE_BELL
+            text_color = arcade.color.BLUE_BELL
 
         # Shadow
-        arcade.draw_circle_filled(
-            self.x + 4,
-            self.body_y - 4,
-            25,
-            (20, 80, 20)
+        arcade.draw_lbwh_rectangle_filled(
+            self.x - 58,
+            self.body_y - 19,
+            116,
+            42,
+            (15, 20, 35)
         )
 
-        # Body
-        arcade.draw_circle_filled(
+        arcade.draw_lbwh_rectangle_outline(
+            self.x - 58,
+            self.body_y - 19,
+            116,
+            42,
+            arcade.color.SKY_BLUE,
+            2
+        )
+
+        # Target label
+        arcade.draw_text(
+            "DATA",
             self.x,
-            self.body_y,
-            25,
-            color
+            self.body_y + 7,
+            text_color,
+            15,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
         )
 
-        # Eyes
-        arcade.draw_circle_filled(
-            self.x - 8,
-            self.body_y + 6,
-            4,
-            arcade.color.BLACK
+        arcade.draw_text(
+            "CENTER",
+            self.x,
+            self.body_y - 9,
+            text_color,
+            13,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
         )
 
-        arcade.draw_circle_filled(
-            self.x + 8,
-            self.body_y + 6,
-            4,
-            arcade.color.BLACK
+        # Water fill bar
+        bar_width = 86
+        bar_height = 10
+        bar_x = self.x - bar_width / 2
+        bar_y = self.body_y - 36
+        fill_percent = min(1, self.water_hits / HITS_TO_FILL)
+
+        arcade.draw_lbwh_rectangle_filled(
+            bar_x,
+            bar_y,
+            bar_width,
+            bar_height,
+            (25, 35, 55)
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            bar_x,
+            bar_y,
+            bar_width * fill_percent,
+            bar_height,
+            (70, 205, 255)
+        )
+
+        arcade.draw_lbwh_rectangle_outline(
+            bar_x,
+            bar_y,
+            bar_width,
+            bar_height,
+            arcade.color.WHITE,
+            2
         )
 
 
@@ -619,7 +662,7 @@ class WhackGame(arcade.Window):
                     bot.water_hits += 1
 
                     # Fully soaked
-                    if bot.water_hits >= 3:
+                    if bot.water_hits >= HITS_TO_FILL:
 
                         bot.defeated = True
                         bot.defeat_timer = 1.5

@@ -240,13 +240,14 @@ class WhackGame(arcade.Window):
         )
 
         # Water inside
-        arcade.draw_lbwh_rectangle_filled(
-            tank_x + water_padding,
-            tank_y + water_padding,
-            water_width,
-            water_height,
-            (80, 200, 255)
-        )
+        if water_height > 0:
+            arcade.draw_lbwh_rectangle_filled(
+                tank_x + water_padding,
+                tank_y + water_padding,
+                water_width,
+                water_height,
+                (80, 200, 255)
+            )
 
         arcade.draw_lbwh_rectangle_outline(
             tank_x + water_padding,
@@ -515,16 +516,16 @@ class WhackGame(arcade.Window):
         # HUD
         arcade.draw_lbwh_rectangle_filled(
             590,
-            10,
+            5,
             190,
-            80,
+            95,
             (20, 20, 40)
         )
 
         arcade.draw_text(
             f"SCORE: {self.score}",
             610,
-            55,
+            70,
             arcade.color.YELLOW,
             18,
             bold=True
@@ -533,7 +534,7 @@ class WhackGame(arcade.Window):
         arcade.draw_text(
             f"TIME: {int(self.time_left)}",
             610,
-            25,
+            40,
             arcade.color.SKY_BLUE,
             18,
             bold=True
@@ -542,7 +543,7 @@ class WhackGame(arcade.Window):
         arcade.draw_text(
             f"WATER: {int(self.water_level * 100)}%",
             610,
-            5,
+            15,
             (80, 200, 255),
             14,
             bold=True

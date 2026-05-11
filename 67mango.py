@@ -27,6 +27,7 @@ SPAWN_SPEEDUP_PER_SECOND = 0.025
 VISIBLE_TIME = 4.5
 POINTS_PER_DATA_CENTER = 10
 NUM_HOLES = 4
+SHUTDOWN_LOSS_COUNT = 3
 WATER_FILL_SECONDS = 1.0
 WATER_DRAIN_PER_SECOND = 0.022
 
@@ -679,7 +680,7 @@ class WhackGame(arcade.Window):
             if bot.timer >= VISIBLE_TIME and bot.water_fill < 1:
                 bot.shut_down = True
 
-        if self.all_lanes_shut_down():
+        if self.too_many_lanes_shut_down():
             self.game_over = True
             self.stop_spraying()
             return
@@ -715,7 +716,7 @@ class WhackGame(arcade.Window):
 
     # ─────────────────────────────────
 
-    def all_lanes_shut_down(self):
+    def too_many_lanes_shut_down(self):
 
         shut_down_lanes = {
             (bot.x, bot.y)
@@ -723,7 +724,7 @@ class WhackGame(arcade.Window):
             if bot.shut_down
         }
 
-        return len(shut_down_lanes) == NUM_HOLES
+        return len(shut_down_lanes) >= SHUTDOWN_LOSS_COUNT
 
     # ─────────────────────────────────
 

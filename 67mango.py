@@ -24,10 +24,9 @@ HOLE_POSITIONS = [
 SPAWN_INTERVAL = 2.5
 VISIBLE_TIME = 4.5
 POINTS_PER_DATA_CENTER = 10
-GAME_DURATION = 60.0
 NUM_HOLES = 4
 WATER_FILL_SECONDS = 1.0
-WATER_DRAIN_PER_SECOND = 0.033
+WATER_DRAIN_PER_SECOND = 0.022
 
 
 # ─────────────────────────────────────────────
@@ -45,6 +44,7 @@ class Bot:
 
         # Water requirement system
         self.water_fill = 0.0
+        self.shut_down = False
 
     @property
     def body_y(self):
@@ -58,7 +58,10 @@ class Bot:
         text_color = arcade.color.WHITE
 
         # Change color while filling with water
-        if self.water_fill >= 0.7:
+        if self.shut_down:
+            text_color = (255, 105, 105)
+
+        elif self.water_fill >= 0.7:
             text_color = arcade.color.SKY_BLUE
 
         elif self.water_fill >= 0.35:
@@ -73,18 +76,20 @@ class Bot:
             (15, 20, 35)
         )
 
+        outline_color = arcade.color.RED if self.shut_down else arcade.color.SKY_BLUE
+
         arcade.draw_lbwh_rectangle_outline(
             self.x - 58,
             self.body_y - 19,
             116,
             42,
-            arcade.color.SKY_BLUE,
+            outline_color,
             2
         )
 
         # Target label
         arcade.draw_text(
-            "DATA",
+            "SHUT" if self.shut_down else "DATA",
             self.x,
             self.body_y + 7,
             text_color,
@@ -95,7 +100,7 @@ class Bot:
         )
 
         arcade.draw_text(
-            "CENTER",
+            "DOWN" if self.shut_down else "CENTER",
             self.x,
             self.body_y - 9,
             text_color,
@@ -111,8 +116,12 @@ class Bot:
         bar_x = self.x - bar_width / 2
         bar_y = self.body_y - 36
         fill_percent = min(1, self.water_fill)
-        bar_outline_color = arcade.color.YELLOW if is_being_sprayed else arcade.color.WHITE
-        bar_fill_color = (135, 235, 255) if is_being_sprayed else (70, 205, 255)
+        bar_outline_color = arcade.color.RED if self.shut_down else arcade.color.WHITE
+        bar_fill_color = (180, 45, 45) if self.shut_down else (70, 205, 255)
+
+        if is_being_sprayed:
+            bar_outline_color = arcade.color.YELLOW
+            bar_fill_color = (135, 235, 255)
 
         arcade.draw_lbwh_rectangle_filled(
             bar_x,
@@ -197,7 +206,6 @@ class WhackGame(arcade.Window):
     def reset(self):
 
         self.score = 0
-        self.time_left = GAME_DURATION
         self.spawn_timer = 0
 
         self.game_over = False
@@ -518,24 +526,15 @@ class WhackGame(arcade.Window):
             590,
             5,
             190,
-            95,
+            75,
             (20, 20, 40)
         )
 
         arcade.draw_text(
             f"SCORE: {self.score}",
             610,
-            70,
+            55,
             arcade.color.YELLOW,
-            18,
-            bold=True
-        )
-
-        arcade.draw_text(
-            f"TIME: {int(self.time_left)}",
-            610,
-            40,
-            arcade.color.SKY_BLUE,
             18,
             bold=True
         )
@@ -543,9 +542,9 @@ class WhackGame(arcade.Window):
         arcade.draw_text(
             f"WATER: {int(self.water_level * 100)}%",
             610,
-            15,
+            25,
             (80, 200, 255),
-            14,
+            18,
             bold=True
         )
 
@@ -609,13 +608,6 @@ class WhackGame(arcade.Window):
         if self.game_over:
             return
 
-        self.time_left -= delta_time
-
-        if self.time_left <= 0:
-
-            self.game_over = True
-            return
-
         # Spawn bots
         self.spawn_timer += delta_time
 
@@ -627,6 +619,10 @@ class WhackGame(arcade.Window):
         # Update bots
         for bot in self.bots:
 
+            if bot.shut_down:
+                bot.pop = 1
+                continue
+
             bot.timer += delta_time
 
             bot.pop = min(
@@ -634,11 +630,13 @@ class WhackGame(arcade.Window):
                 bot.timer / 0.25
             )
 
-        # Remove timed-out bots
-        self.bots = [
-            bot for bot in self.bots
-            if bot.timer < VISIBLE_TIME
-        ]
+            if bot.timer >= VISIBLE_TIME and bot.water_fill < 1:
+                bot.shut_down = True
+
+        if self.all_lanes_shut_down():
+            self.game_over = True
+            self.stop_spraying()
+            return
 
         self.update_water_stream(delta_time)
 
@@ -646,9 +644,42 @@ class WhackGame(arcade.Window):
 
     def spawn_bot(self):
 
-        x, y = random.choice(HOLE_POSITIONS)
+        open_positions = [
+            position for position in HOLE_POSITIONS
+            if not self.has_bot_in_lane(position)
+        ]
+
+        if not open_positions:
+            return
+
+        x, y = random.choice(open_positions)
 
         self.bots.append(Bot(x, y))
+
+    # ─────────────────────────────────
+
+    def has_bot_in_lane(self, position):
+
+        lane_x, lane_y = position
+
+        for bot in self.bots:
+
+            if bot.x == lane_x and bot.y == lane_y:
+                return True
+
+        return False
+
+    # ─────────────────────────────────
+
+    def all_lanes_shut_down(self):
+
+        shut_down_lanes = {
+            (bot.x, bot.y)
+            for bot in self.bots
+            if bot.shut_down
+        }
+
+        return len(shut_down_lanes) == NUM_HOLES
 
     # ─────────────────────────────────
 
@@ -761,6 +792,9 @@ class WhackGame(arcade.Window):
         best_timer = -1
 
         for bot in self.bots:
+
+            if bot.shut_down:
+                continue
 
             if bot.x != target_x or bot.y != target_y:
                 continue

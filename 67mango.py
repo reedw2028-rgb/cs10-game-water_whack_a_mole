@@ -26,8 +26,7 @@ VISIBLE_TIME = 4.5
 POINTS_PER_HIT = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
-HITS_TO_FILL = 3
-WATER_DAMAGE_INTERVAL = 0.35
+WATER_FILL_SECONDS = 1.2
 
 
 # ─────────────────────────────────────────────
@@ -43,10 +42,8 @@ class Bot:
         self.timer = 0
         self.pop = 0
 
-        # Water damage system
-        self.water_hits = 0
-        self.defeated = False
-        self.defeat_timer = 0
+        # Water requirement system
+        self.water_fill = 0.0
 
     @property
     def body_y(self):
@@ -60,15 +57,11 @@ class Bot:
         text_color = arcade.color.WHITE
 
         # Change color while filling with water
-        if self.water_hits == 1:
-            text_color = arcade.color.AQUAMARINE
-
-        elif self.water_hits >= 2:
+        if self.water_fill >= 0.7:
             text_color = arcade.color.SKY_BLUE
 
-        # Final soaked state
-        if self.defeated:
-            text_color = arcade.color.BLUE_BELL
+        elif self.water_fill >= 0.35:
+            text_color = arcade.color.AQUAMARINE
 
         # Shadow
         arcade.draw_lbwh_rectangle_filled(
@@ -116,7 +109,7 @@ class Bot:
         bar_height = 10
         bar_x = self.x - bar_width / 2
         bar_y = self.body_y - 36
-        fill_percent = min(1, self.water_hits / HITS_TO_FILL)
+        fill_percent = min(1, self.water_fill)
 
         arcade.draw_lbwh_rectangle_filled(
             bar_x,
@@ -208,7 +201,6 @@ class WhackGame(arcade.Window):
 
         self.bots = []
         self.spraying = False
-        self.water_damage_timer = 0
 
     # ─────────────────────────────────
 
@@ -612,19 +604,8 @@ class WhackGame(arcade.Window):
         # Remove timed-out bots
         self.bots = [
             bot for bot in self.bots
-            if bot.timer < VISIBLE_TIME or bot.defeated
+            if bot.timer < VISIBLE_TIME
         ]
-
-        # Handle defeated bots
-        for bot in self.bots[:]:
-
-            if bot.defeated:
-
-                bot.defeat_timer -= delta_time
-
-                if bot.defeat_timer <= 0:
-
-                    self.bots.remove(bot)
 
         self.update_water_stream(delta_time)
 
@@ -695,7 +676,6 @@ class WhackGame(arcade.Window):
             return
 
         self.spraying = True
-        self.water_damage_timer = 0
 
     # ─────────────────────────────────
 
@@ -710,26 +690,17 @@ class WhackGame(arcade.Window):
         if not self.spraying:
             return
 
-        self.water_damage_timer -= delta_time
-
-        if self.water_damage_timer > 0:
-            return
-
-        self.water_damage_timer = WATER_DAMAGE_INTERVAL
-
         target_bot = self.get_spray_target()
 
         if target_bot is None:
             return
 
-        target_bot.water_hits += 1
+        target_bot.water_fill += delta_time / WATER_FILL_SECONDS
 
-        if target_bot.water_hits >= HITS_TO_FILL:
-
-            target_bot.defeated = True
-            target_bot.defeat_timer = 1.5
+        if target_bot.water_fill >= 1:
 
             self.score += POINTS_PER_HIT
+            self.bots.remove(target_bot)
 
     # ─────────────────────────────────
 
@@ -744,9 +715,6 @@ class WhackGame(arcade.Window):
         best_progress = 999999
 
         for bot in self.bots:
-
-            if bot.defeated:
-                continue
 
             distance = distance_to_line_segment(
                 bot.x,

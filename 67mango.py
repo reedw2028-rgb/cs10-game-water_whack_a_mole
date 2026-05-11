@@ -23,7 +23,7 @@ HOLE_POSITIONS = [
 # Gameplay settings
 SPAWN_INTERVAL = 2.5
 VISIBLE_TIME = 4.5
-POINTS_PER_HIT = 10
+POINTS_PER_DATA_CENTER = 10
 GAME_DURATION = 60.0
 NUM_HOLES = 4
 WATER_FILL_SECONDS = 1.2
@@ -699,7 +699,7 @@ class WhackGame(arcade.Window):
 
         if target_bot.water_fill >= 1:
 
-            self.score += POINTS_PER_HIT
+            self.score += POINTS_PER_DATA_CENTER
             self.bots.remove(target_bot)
 
     # ─────────────────────────────────

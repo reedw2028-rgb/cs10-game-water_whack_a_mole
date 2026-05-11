@@ -713,40 +713,24 @@ class WhackGame(arcade.Window):
 
     def get_spray_target(self):
 
-        nozzle_x = self.player_x + 30
-        nozzle_y = self.player_y + 15
         target_x, target_y = HOLE_POSITIONS[self.current_tank]
 
         best_bot = None
-        best_distance = 999999
-        best_progress = 999999
+        best_fill = -1
+        best_timer = -1
 
         for bot in self.bots:
 
-            distance = distance_to_line_segment(
-                bot.x,
-                bot.body_y,
-                nozzle_x,
-                nozzle_y,
-                target_x,
-                target_y
-            )
-
-            if distance > 35:
+            if bot.x != target_x or bot.y != target_y:
                 continue
 
-            progress = math.hypot(
-                bot.x - nozzle_x,
-                bot.body_y - nozzle_y
-            )
-
             if (
-                distance < best_distance or
-                (distance == best_distance and progress < best_progress)
+                bot.water_fill > best_fill or
+                (bot.water_fill == best_fill and bot.timer > best_timer)
             ):
                 best_bot = bot
-                best_distance = distance
-                best_progress = progress
+                best_fill = bot.water_fill
+                best_timer = bot.timer
 
         return best_bot
 

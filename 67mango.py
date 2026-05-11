@@ -22,6 +22,8 @@ HOLE_POSITIONS = [
 
 # Gameplay settings
 SPAWN_INTERVAL = 2.5
+MIN_SPAWN_INTERVAL = 0.75
+SPAWN_SPEEDUP_PER_SECOND = 0.025
 VISIBLE_TIME = 4.5
 POINTS_PER_DATA_CENTER = 10
 NUM_HOLES = 4
@@ -207,12 +209,32 @@ class WhackGame(arcade.Window):
 
         self.score = 0
         self.spawn_timer = 0
+        self.elapsed_time = 0
 
         self.game_over = False
 
         self.bots = []
         self.spraying = False
         self.water_level = 1.0
+
+    # ─────────────────────────────────
+
+    def get_spawn_interval(self):
+
+        return max(
+            MIN_SPAWN_INTERVAL,
+            SPAWN_INTERVAL - self.elapsed_time * SPAWN_SPEEDUP_PER_SECOND
+        )
+
+    # ─────────────────────────────────
+
+    def get_time_text(self):
+
+        total_seconds = int(self.elapsed_time)
+        minutes = total_seconds // 60
+        seconds = total_seconds % 60
+
+        return f"{minutes}:{seconds:02d}"
 
     # ─────────────────────────────────
 
@@ -565,6 +587,26 @@ class WhackGame(arcade.Window):
             12
         )
 
+        # Timer
+        arcade.draw_lbwh_rectangle_filled(
+            600,
+            525,
+            180,
+            55,
+            (20, 20, 40)
+        )
+
+        arcade.draw_text(
+            f"TIME: {self.get_time_text()}",
+            690,
+            552,
+            arcade.color.WHITE,
+            18,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
         # Game Over
         if self.game_over:
 
@@ -608,10 +650,12 @@ class WhackGame(arcade.Window):
         if self.game_over:
             return
 
+        self.elapsed_time += delta_time
+
         # Spawn bots
         self.spawn_timer += delta_time
 
-        if self.spawn_timer >= SPAWN_INTERVAL:
+        if self.spawn_timer >= self.get_spawn_interval():
 
             self.spawn_timer = 0
             self.spawn_bot()

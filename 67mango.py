@@ -31,7 +31,6 @@ SHUTDOWN_LOSS_COUNT = 3
 WATER_FILL_SECONDS = 1.0
 WATER_DRAIN_PER_SECOND = 0.022
 REFILL_AMOUNT = 0.25
-REFILL_THRESHOLDS = [0.75, 0.50, 0.25, 0.0]
 REFILL_OPTIONS = [
     {
         "name": "Ocean + Lake Pump",
@@ -314,7 +313,8 @@ class WhackGame(arcade.Window):
         )
         self.refills_used += 1
         self.refill_choice_active = False
-        self.next_refill_threshold = max(0.0, self.water_level - REFILL_AMOUNT)
+        next_threshold = self.water_level - REFILL_AMOUNT
+        self.next_refill_threshold = max(0.0, round(next_threshold * 4) / 4)
 
     # ─────────────────────────────────
 

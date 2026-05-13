@@ -384,23 +384,28 @@ class WhackGame(arcade.Window):
                 3
             )
 
-        else:
+        # Target marker
+        arcade.draw_triangle_filled(
+            target_x - 12,
+            target_y + 48,
+            target_x + 12,
+            target_y + 48,
+            target_x,
+            target_y + 32,
+            arcade.color.YELLOW
+        )
 
-            # Aim guide
-            arcade.draw_line(
-                self.player_x + 30,
-                self.player_y + 15,
-                target_x,
-                target_y,
-                (120, 200, 255),
-                2
-            )
+        arcade.draw_circle_filled(
+            target_x,
+            target_y + 26,
+            5,
+            arcade.color.YELLOW
+        )
 
-        # Target indicator
         arcade.draw_circle_outline(
             target_x,
-            target_y,
-            35,
+            target_y + 26,
+            8,
             arcade.color.YELLOW,
             2
         )
@@ -494,7 +499,7 @@ class WhackGame(arcade.Window):
             0,
             WINDOW_WIDTH,
             160,
-            (55, 45, 90)
+            (95, 95, 100)
         )
 
         # Holes

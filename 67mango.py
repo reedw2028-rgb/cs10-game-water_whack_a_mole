@@ -579,6 +579,218 @@ class WhackGame(arcade.Window):
 
     # ─────────────────────────────────
 
+    def draw_eco_scoreboard(self):
+
+        arcade.draw_lbwh_rectangle_filled(
+            15,
+            80,
+            185,
+            118,
+            (22, 28, 32)
+        )
+
+        arcade.draw_lbwh_rectangle_outline(
+            15,
+            80,
+            185,
+            118,
+            arcade.color.LIGHT_GRAY,
+            2
+        )
+
+        arcade.draw_text(
+            "ECO BOARD",
+            28,
+            172,
+            arcade.color.WHITE,
+            14,
+            bold=True
+        )
+
+        arcade.draw_text(
+            f"ECO: {self.eco_score}/100",
+            28,
+            145,
+            (95, 225, 115),
+            13,
+            bold=True
+        )
+
+        arcade.draw_text(
+            f"COST: ${self.total_cost}",
+            28,
+            122,
+            (255, 220, 95),
+            13,
+            bold=True
+        )
+
+        arcade.draw_text(
+            f"DAMAGE: {self.local_water_damage}%",
+            28,
+            99,
+            (255, 130, 130),
+            13,
+            bold=True
+        )
+
+        arcade.draw_text(
+            f"REFILLS: {self.refills_used}",
+            28,
+            84,
+            arcade.color.LIGHT_GRAY,
+            11,
+            bold=True
+        )
+
+    # ─────────────────────────────────
+
+    def draw_refill_menu(self):
+
+        if not self.refill_choice_active:
+            return
+
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            0,
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+            (0, 0, 0, 150)
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            100,
+            135,
+            600,
+            335,
+            (18, 24, 30)
+        )
+
+        arcade.draw_lbwh_rectangle_outline(
+            100,
+            135,
+            600,
+            335,
+            arcade.color.WHITE,
+            3
+        )
+
+        arcade.draw_text(
+            self.get_refill_warning_text(),
+            400,
+            430,
+            arcade.color.WHITE,
+            28,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+        arcade.draw_text(
+            "Choose a refill source: press 1, 2, 3 or click",
+            400,
+            395,
+            arcade.color.LIGHT_GRAY,
+            14,
+            anchor_x="center",
+            anchor_y="center"
+        )
+
+        for i, option in enumerate(REFILL_OPTIONS):
+
+            box_x = 130 + i * 185
+            box_y = 185
+            box_width = 160
+            box_height = 175
+
+            arcade.draw_lbwh_rectangle_filled(
+                box_x,
+                box_y,
+                box_width,
+                box_height,
+                (32, 40, 45)
+            )
+
+            arcade.draw_lbwh_rectangle_outline(
+                box_x,
+                box_y,
+                box_width,
+                box_height,
+                option["color"],
+                4
+            )
+
+            arcade.draw_text(
+                str(i + 1),
+                box_x + 16,
+                box_y + 143,
+                option["color"],
+                24,
+                bold=True
+            )
+
+            arcade.draw_text(
+                option["name"],
+                box_x + 80,
+                box_y + 126,
+                option["color"],
+                13,
+                anchor_x="center",
+                anchor_y="center",
+                bold=True,
+                width=140,
+                multiline=True
+            )
+
+            arcade.draw_text(
+                option["detail"],
+                box_x + 80,
+                box_y + 84,
+                arcade.color.WHITE,
+                10,
+                anchor_x="center",
+                anchor_y="center",
+                width=136,
+                multiline=True
+            )
+
+            eco_text = f"ECO {option['eco']:+}"
+            damage_text = f"DAMAGE +{option['impact']}"
+
+            arcade.draw_text(
+                f"COST ${option['cost']}",
+                box_x + 80,
+                box_y + 48,
+                (255, 220, 95),
+                12,
+                anchor_x="center",
+                anchor_y="center",
+                bold=True
+            )
+
+            arcade.draw_text(
+                eco_text,
+                box_x + 80,
+                box_y + 29,
+                (95, 225, 115),
+                12,
+                anchor_x="center",
+                anchor_y="center",
+                bold=True
+            )
+
+            arcade.draw_text(
+                damage_text,
+                box_x + 80,
+                box_y + 12,
+                (255, 130, 130),
+                10,
+                anchor_x="center",
+                anchor_y="center"
+            )
+
+    # ─────────────────────────────────
+
     def on_draw(self):
 
         self.clear()
@@ -675,6 +887,8 @@ class WhackGame(arcade.Window):
             bold=True
         )
 
+        self.draw_eco_scoreboard()
+
         arcade.draw_text(
             "← → to aim | Hold SPACE or CLICK to spray",
             20,
@@ -739,11 +953,16 @@ class WhackGame(arcade.Window):
                 14
             )
 
+        self.draw_refill_menu()
+
     # ─────────────────────────────────
 
     def on_update(self, delta_time):
 
         if self.game_over:
+            return
+
+        if self.refill_choice_active:
             return
 
         self.elapsed_time += delta_time

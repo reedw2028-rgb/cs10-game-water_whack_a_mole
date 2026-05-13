@@ -246,7 +246,7 @@ class WhackGame(arcade.Window):
         self.spraying = False
         self.water_level = 1.0
         self.refill_choice_active = False
-        self.next_refill_index = 0
+        self.next_refill_threshold = 0.75
         self.eco_score = 50
         self.total_cost = 0
         self.local_water_damage = 0

@@ -273,6 +273,62 @@ class WhackGame(arcade.Window):
 
     # ─────────────────────────────────
 
+    def get_refill_warning_text(self):
+
+        if self.next_refill_index >= len(REFILL_THRESHOLDS):
+            return "WATER LOW"
+
+        threshold = int(REFILL_THRESHOLDS[self.next_refill_index] * 100)
+
+        if threshold == 0:
+            return "WATER EMPTY"
+
+        return f"WATER AT {threshold}%"
+
+    # ─────────────────────────────────
+
+    def check_refill_threshold(self):
+
+        if self.refill_choice_active:
+            return
+
+        if self.next_refill_index >= len(REFILL_THRESHOLDS):
+            self.next_refill_index = 0
+
+        threshold = REFILL_THRESHOLDS[self.next_refill_index]
+
+        if self.water_level <= threshold:
+            self.refill_choice_active = True
+            self.stop_spraying()
+
+    # ─────────────────────────────────
+
+    def choose_refill_option(self, option_index):
+
+        if not self.refill_choice_active:
+            return
+
+        if option_index < 0 or option_index >= len(REFILL_OPTIONS):
+            return
+
+        option = REFILL_OPTIONS[option_index]
+
+        self.water_level = min(1.0, self.water_level + REFILL_AMOUNT)
+        self.eco_score = max(0, min(100, self.eco_score + option["eco"]))
+        self.total_cost += option["cost"]
+        self.local_water_damage = min(
+            100,
+            self.local_water_damage + option["impact"]
+        )
+        self.refills_used += 1
+        self.refill_choice_active = False
+        self.next_refill_index += 1
+
+        if self.next_refill_index >= len(REFILL_THRESHOLDS):
+            self.next_refill_index = 0
+
+    # ─────────────────────────────────
+
     def draw_water_tank(self):
 
         x = self.tank_x

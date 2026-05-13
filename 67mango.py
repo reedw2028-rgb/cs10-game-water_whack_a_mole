@@ -1051,6 +1051,19 @@ class WhackGame(arcade.Window):
 
             return
 
+        if self.refill_choice_active:
+
+            if key in (arcade.key.KEY_1, arcade.key.NUM_1):
+                self.choose_refill_option(0)
+
+            elif key in (arcade.key.KEY_2, arcade.key.NUM_2):
+                self.choose_refill_option(1)
+
+            elif key in (arcade.key.KEY_3, arcade.key.NUM_3):
+                self.choose_refill_option(2)
+
+            return
+
         if key == arcade.key.LEFT:
 
             self.current_tank = (
@@ -1071,6 +1084,9 @@ class WhackGame(arcade.Window):
 
     def on_key_release(self, key, modifiers):
 
+        if self.refill_choice_active:
+            return
+
         if key == arcade.key.SPACE:
             self.stop_spraying()
 
@@ -1083,11 +1099,32 @@ class WhackGame(arcade.Window):
             self.reset()
             return
 
+        if self.refill_choice_active:
+
+            for i in range(len(REFILL_OPTIONS)):
+
+                box_x = 130 + i * 185
+                box_y = 185
+                box_width = 160
+                box_height = 175
+
+                if (
+                    box_x <= x <= box_x + box_width and
+                    box_y <= y <= box_y + box_height
+                ):
+                    self.choose_refill_option(i)
+                    return
+
+            return
+
         self.start_spraying()
 
     # ─────────────────────────────────
 
     def on_mouse_release(self, x, y, button, modifiers):
+
+        if self.refill_choice_active:
+            return
 
         self.stop_spraying()
 
@@ -1096,6 +1133,9 @@ class WhackGame(arcade.Window):
     def start_spraying(self):
 
         if self.game_over:
+            return
+
+        if self.refill_choice_active:
             return
 
         if self.water_level <= 0:
@@ -1120,6 +1160,11 @@ class WhackGame(arcade.Window):
             0,
             self.water_level - WATER_DRAIN_PER_SECOND * delta_time
         )
+
+        self.check_refill_threshold()
+
+        if self.refill_choice_active:
+            return
 
         if self.water_level <= 0:
             self.stop_spraying()

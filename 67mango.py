@@ -12,6 +12,16 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 WINDOW_TITLE = "Water Whack-a-Mole"
 
+SKY_TOP = (36, 42, 82)
+SKY_MID = (58, 76, 116)
+GROUND_TOP = (102, 146, 112)
+GROUND_BOTTOM = (67, 101, 78)
+PANEL_COLOR = (21, 27, 43)
+PANEL_BORDER = (94, 128, 158)
+TEXT_SOFT = (215, 226, 238)
+WATER_BLUE = (83, 203, 255)
+WATER_LIGHT = (174, 241, 255)
+
 # Hole positions
 HOLE_POSITIONS = [
     (140, 470),
@@ -85,35 +95,80 @@ class Bot:
         if self.pop <= 0:
             return
 
-        text_color = arcade.color.WHITE
+        pop_ease = 1 - (1 - self.pop) * (1 - self.pop)
+        body_y = self.y + 42 * pop_ease
+        text_color = TEXT_SOFT
 
         # Change color while filling with water
         if self.shut_down:
-            text_color = (255, 105, 105)
+            text_color = (255, 125, 125)
 
         elif self.water_fill >= 0.7:
-            text_color = arcade.color.SKY_BLUE
+            text_color = WATER_LIGHT
 
         elif self.water_fill >= 0.35:
             text_color = arcade.color.AQUAMARINE
 
         # Shadow
+        arcade.draw_ellipse_filled(
+            self.x,
+            self.y + 11,
+            122,
+            24,
+            (21, 18, 27, 165)
+        )
+
+        # Body glow
+        glow_color = (78, 185, 235, 70)
+        if self.shut_down:
+            glow_color = (230, 85, 85, 75)
+
         arcade.draw_lbwh_rectangle_filled(
-            self.x - 58,
-            self.body_y - 19,
-            116,
-            42,
-            (15, 20, 35)
+            self.x - 62,
+            body_y - 23,
+            124,
+            50,
+            glow_color
+        )
+
+        # Main body
+        body_color = (30, 43, 68)
+        if self.shut_down:
+            body_color = (70, 35, 42)
+
+        arcade.draw_lbwh_rectangle_filled(
+            self.x - 56,
+            body_y - 20,
+            112,
+            44,
+            body_color
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            self.x - 50,
+            body_y - 14,
+            100,
+            31,
+            (39, 57, 87) if not self.shut_down else (86, 43, 50)
         )
 
         outline_color = arcade.color.RED if self.shut_down else arcade.color.SKY_BLUE
 
         arcade.draw_lbwh_rectangle_outline(
             self.x - 58,
-            self.body_y - 19,
+            body_y - 21,
             116,
-            42,
+            46,
             outline_color,
+            2
+        )
+
+        arcade.draw_line(
+            self.x - 45,
+            body_y + 13,
+            self.x + 45,
+            body_y + 13,
+            (110, 185, 220) if not self.shut_down else (180, 80, 80),
             2
         )
 
@@ -121,7 +176,7 @@ class Bot:
         arcade.draw_text(
             "SHUT" if self.shut_down else "DATA",
             self.x,
-            self.body_y + 7,
+            body_y + 7,
             text_color,
             15,
             anchor_x="center",
@@ -132,7 +187,7 @@ class Bot:
         arcade.draw_text(
             "DOWN" if self.shut_down else "CENTER",
             self.x,
-            self.body_y - 9,
+            body_y - 9,
             text_color,
             13,
             anchor_x="center",
@@ -144,14 +199,14 @@ class Bot:
         bar_width = 96
         bar_height = 12
         bar_x = self.x - bar_width / 2
-        bar_y = self.body_y - 36
+        bar_y = body_y - 38
         fill_percent = min(1, self.water_fill)
-        bar_outline_color = arcade.color.RED if self.shut_down else arcade.color.WHITE
-        bar_fill_color = (180, 45, 45) if self.shut_down else (70, 205, 255)
+        bar_outline_color = (240, 105, 105) if self.shut_down else (205, 238, 255)
+        bar_fill_color = (205, 65, 65) if self.shut_down else WATER_BLUE
 
         if is_being_sprayed:
             bar_outline_color = arcade.color.YELLOW
-            bar_fill_color = (135, 235, 255)
+            bar_fill_color = WATER_LIGHT
 
         arcade.draw_lbwh_rectangle_filled(
             bar_x,
@@ -203,6 +258,34 @@ def distance_to_line_segment(px, py, x1, y1, x2, y2):
     return math.hypot(px - closest_x, py - closest_y)
 
 
+def draw_panel(x, y, width, height, fill=PANEL_COLOR):
+
+    arcade.draw_lbwh_rectangle_filled(
+        x + 4,
+        y - 4,
+        width,
+        height,
+        (8, 12, 22, 130)
+    )
+
+    arcade.draw_lbwh_rectangle_filled(
+        x,
+        y,
+        width,
+        height,
+        fill
+    )
+
+    arcade.draw_lbwh_rectangle_outline(
+        x,
+        y,
+        width,
+        height,
+        PANEL_BORDER,
+        2
+    )
+
+
 # ─────────────────────────────────────────────
 # Main Game
 # ─────────────────────────────────────────────
@@ -216,7 +299,7 @@ class WhackGame(arcade.Window):
             WINDOW_TITLE
         )
 
-        arcade.set_background_color((40, 30, 70))
+        arcade.set_background_color(SKY_TOP)
 
         # Player position
         self.player_x = WINDOW_WIDTH // 2 - 80
@@ -250,6 +333,7 @@ class WhackGame(arcade.Window):
         self.total_cost = 0
         self.local_water_damage = 0
         self.refills_used = 0
+        self.spray_particles = []
 
     # ─────────────────────────────────
 
@@ -331,13 +415,30 @@ class WhackGame(arcade.Window):
         water_max_height = tank_height - water_padding * 2
         water_height = water_max_height * self.water_level
 
+        # Tank shadow
+        arcade.draw_ellipse_filled(
+            x,
+            tank_y - 8,
+            84,
+            20,
+            (18, 20, 25, 155)
+        )
+
         # Tank body
         arcade.draw_lbwh_rectangle_filled(
             tank_x,
             tank_y,
             tank_width,
             tank_height,
-            (80, 120, 165)
+            (62, 94, 132)
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            tank_x + 8,
+            tank_y + 8,
+            tank_width - 16,
+            tank_height - 16,
+            (78, 126, 166)
         )
 
         arcade.draw_lbwh_rectangle_outline(
@@ -345,7 +446,7 @@ class WhackGame(arcade.Window):
             tank_y,
             tank_width,
             tank_height,
-            arcade.color.DARK_BLUE,
+            (22, 44, 72),
             3
         )
 
@@ -356,7 +457,15 @@ class WhackGame(arcade.Window):
                 tank_y + water_padding,
                 water_width,
                 water_height,
-                (80, 200, 255)
+                WATER_BLUE
+            )
+
+            arcade.draw_lbwh_rectangle_filled(
+                tank_x + water_padding,
+                tank_y + water_padding + water_height - 5,
+                water_width,
+                5,
+                WATER_LIGHT
             )
 
         arcade.draw_lbwh_rectangle_outline(
@@ -364,8 +473,17 @@ class WhackGame(arcade.Window):
             tank_y + water_padding,
             water_width,
             water_max_height,
-            (185, 235, 255),
+            (205, 238, 255),
             2
+        )
+
+        arcade.draw_line(
+            tank_x + 18,
+            tank_y + 15,
+            tank_x + 18,
+            tank_y + tank_height - 14,
+            (160, 210, 230, 130),
+            3
         )
 
         # Cap
@@ -373,7 +491,15 @@ class WhackGame(arcade.Window):
             x,
             tank_y + tank_height + 5,
             12,
-            arcade.color.DARK_GRAY
+            (26, 34, 45)
+        )
+
+        arcade.draw_circle_outline(
+            x,
+            tank_y + tank_height + 5,
+            12,
+            (160, 185, 205),
+            2
         )
 
     # ─────────────────────────────────
@@ -396,8 +522,8 @@ class WhackGame(arcade.Window):
             hose_start_y,
             self.player_x + 30,
             self.player_y + 15,
-            arcade.color.DARK_GRAY,
-            7
+            (20, 24, 29),
+            9
         )
 
         # Highlight
@@ -406,7 +532,7 @@ class WhackGame(arcade.Window):
             hose_start_y,
             self.player_x + 30,
             self.player_y + 15,
-            (150, 150, 150),
+            (105, 123, 135),
             3
         )
 
@@ -415,7 +541,7 @@ class WhackGame(arcade.Window):
             self.player_x + 30,
             self.player_y + 15,
             6,
-            arcade.color.DARK_GRAY
+            (22, 26, 31)
         )
 
         if self.spraying and self.water_level > 0:
@@ -426,7 +552,7 @@ class WhackGame(arcade.Window):
                 self.player_y + 15,
                 target_x,
                 target_y,
-                (65, 190, 255),
+                (45, 168, 235, 160),
                 16
             )
 
@@ -435,7 +561,7 @@ class WhackGame(arcade.Window):
                 self.player_y + 15,
                 target_x,
                 target_y,
-                (145, 235, 255),
+                WATER_BLUE,
                 9
             )
 
@@ -444,22 +570,30 @@ class WhackGame(arcade.Window):
                 self.player_y + 15,
                 target_x,
                 target_y,
-                arcade.color.WHITE,
+                WATER_LIGHT,
                 3
             )
+
+            for particle in self.spray_particles:
+                arcade.draw_circle_filled(
+                    particle["x"],
+                    particle["y"],
+                    particle["size"],
+                    particle["color"]
+                )
 
             arcade.draw_circle_filled(
                 target_x,
                 target_y,
                 17,
-                (105, 225, 255)
+                (105, 225, 255, 145)
             )
 
             arcade.draw_circle_outline(
                 target_x,
                 target_y,
                 24,
-                arcade.color.WHITE,
+                WATER_LIGHT,
                 3
             )
 
@@ -471,14 +605,14 @@ class WhackGame(arcade.Window):
             target_y + 48,
             target_x,
             target_y + 32,
-            arcade.color.YELLOW
+            (255, 218, 75)
         )
 
         arcade.draw_circle_filled(
             target_x,
             target_y + 26,
             5,
-            arcade.color.YELLOW
+            (255, 218, 75)
         )
 
         arcade.draw_circle_outline(
@@ -496,13 +630,21 @@ class WhackGame(arcade.Window):
         x = self.player_x
         y = self.player_y
 
+        arcade.draw_ellipse_filled(
+            x,
+            y - 78,
+            72,
+            18,
+            (18, 20, 25, 150)
+        )
+
         # Legs
         arcade.draw_line(
             x - 15,
             y - 40,
             x - 5,
             y - 80,
-            arcade.color.BLACK,
+            (25, 30, 42),
             5
         )
 
@@ -511,7 +653,7 @@ class WhackGame(arcade.Window):
             y - 40,
             x + 5,
             y - 80,
-            arcade.color.BLACK,
+            (25, 30, 42),
             5
         )
 
@@ -521,7 +663,15 @@ class WhackGame(arcade.Window):
             y - 30,
             40,
             60,
-            arcade.color.BLUE
+            (46, 105, 187)
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            x - 12,
+            y - 20,
+            24,
+            42,
+            (67, 139, 215)
         )
 
         # Arms
@@ -530,7 +680,7 @@ class WhackGame(arcade.Window):
             y + 10,
             x + 20,
             y + 10,
-            arcade.color.BLACK,
+            (25, 30, 42),
             5
         )
 
@@ -539,7 +689,7 @@ class WhackGame(arcade.Window):
             y + 10,
             x + 35,
             y - 15,
-            arcade.color.BLACK,
+            (25, 30, 42),
             5
         )
 
@@ -548,7 +698,14 @@ class WhackGame(arcade.Window):
             x,
             y + 55,
             20,
-            arcade.color.BISQUE
+            (245, 205, 168)
+        )
+
+        arcade.draw_circle_filled(
+            x,
+            y + 69,
+            13,
+            (55, 38, 35)
         )
 
         # Eyes
@@ -570,28 +727,13 @@ class WhackGame(arcade.Window):
 
     def draw_eco_scoreboard(self):
 
-        arcade.draw_lbwh_rectangle_filled(
-            15,
-            80,
-            185,
-            118,
-            (22, 28, 32)
-        )
-
-        arcade.draw_lbwh_rectangle_outline(
-            15,
-            80,
-            185,
-            118,
-            arcade.color.LIGHT_GRAY,
-            2
-        )
+        draw_panel(15, 80, 185, 118, (20, 29, 38))
 
         arcade.draw_text(
             "ECO BOARD",
             28,
             172,
-            arcade.color.WHITE,
+            TEXT_SOFT,
             14,
             bold=True
         )
@@ -627,7 +769,7 @@ class WhackGame(arcade.Window):
             f"REFILLS: {self.refills_used}",
             28,
             84,
-            arcade.color.LIGHT_GRAY,
+            (170, 190, 202),
             11,
             bold=True
         )
@@ -647,28 +789,13 @@ class WhackGame(arcade.Window):
             (0, 0, 0, 150)
         )
 
-        arcade.draw_lbwh_rectangle_filled(
-            100,
-            135,
-            600,
-            335,
-            (18, 24, 30)
-        )
-
-        arcade.draw_lbwh_rectangle_outline(
-            100,
-            135,
-            600,
-            335,
-            arcade.color.WHITE,
-            3
-        )
+        draw_panel(100, 135, 600, 335, (18, 25, 35))
 
         arcade.draw_text(
             self.get_refill_warning_text(),
             400,
             430,
-            arcade.color.WHITE,
+            TEXT_SOFT,
             28,
             anchor_x="center",
             anchor_y="center",
@@ -679,7 +806,7 @@ class WhackGame(arcade.Window):
             "Choose a water plan: press 1, 2, 3 or click",
             400,
             395,
-            arcade.color.LIGHT_GRAY,
+            (170, 190, 202),
             14,
             anchor_x="center",
             anchor_y="center"
@@ -697,7 +824,15 @@ class WhackGame(arcade.Window):
                 box_y,
                 box_width,
                 box_height,
-                (32, 40, 45)
+                (28, 38, 48)
+            )
+
+            arcade.draw_lbwh_rectangle_filled(
+                box_x,
+                box_y + box_height - 38,
+                box_width,
+                38,
+                (35, 49, 61)
             )
 
             arcade.draw_lbwh_rectangle_outline(
@@ -735,7 +870,7 @@ class WhackGame(arcade.Window):
                 option["detail"],
                 box_x + 80,
                 box_y + 84,
-                arcade.color.WHITE,
+                TEXT_SOFT,
                 10,
                 anchor_x="center",
                 anchor_y="center",
@@ -784,13 +919,69 @@ class WhackGame(arcade.Window):
 
         self.clear()
 
-        # Ground
+        # Sky and ground
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            300,
+            WINDOW_WIDTH,
+            300,
+            SKY_TOP
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            160,
+            WINDOW_WIDTH,
+            190,
+            SKY_MID
+        )
+
+        arcade.draw_circle_filled(95, 525, 34, (255, 226, 126, 200))
+
+        for cloud_x, cloud_y, cloud_w in (
+            (235, 535, 80),
+            (575, 510, 95),
+        ):
+            arcade.draw_ellipse_filled(
+                cloud_x,
+                cloud_y,
+                cloud_w,
+                24,
+                (229, 239, 247, 70)
+            )
+
         arcade.draw_lbwh_rectangle_filled(
             0,
             0,
             WINDOW_WIDTH,
             160,
-            (95, 95, 100)
+            GROUND_BOTTOM
+        )
+
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            145,
+            WINDOW_WIDTH,
+            36,
+            GROUND_TOP
+        )
+
+        for x in range(0, WINDOW_WIDTH, 80):
+            arcade.draw_line(
+                x,
+                145,
+                x + 34,
+                181,
+                (122, 166, 124, 105),
+                3
+            )
+
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            330,
+            WINDOW_WIDTH,
+            18,
+            (70, 106, 92)
         )
 
         # Holes
@@ -798,10 +989,26 @@ class WhackGame(arcade.Window):
 
             arcade.draw_ellipse_filled(
                 x,
+                y - 5,
+                128,
+                42,
+                (23, 18, 18, 120)
+            )
+
+            arcade.draw_ellipse_filled(
+                x,
                 y,
                 110,
                 35,
-                (60, 35, 20)
+                (52, 35, 30)
+            )
+
+            arcade.draw_ellipse_filled(
+                x,
+                y + 4,
+                92,
+                23,
+                (28, 22, 25)
             )
 
             arcade.draw_ellipse_outline(
@@ -809,8 +1016,8 @@ class WhackGame(arcade.Window):
                 y,
                 110,
                 35,
-                arcade.color.BLACK,
-                3
+                (120, 86, 62),
+                4
             )
 
             # Selected hole highlight
@@ -821,7 +1028,7 @@ class WhackGame(arcade.Window):
                     y,
                     120,
                     45,
-                    arcade.color.YELLOW,
+                    (255, 218, 75),
                     4
                 )
 
@@ -841,19 +1048,13 @@ class WhackGame(arcade.Window):
         self.draw_player()
 
         # HUD
-        arcade.draw_lbwh_rectangle_filled(
-            590,
-            5,
-            190,
-            75,
-            (20, 20, 40)
-        )
+        draw_panel(590, 5, 190, 75)
 
         arcade.draw_text(
             f"SCORE: {self.score}",
             610,
             55,
-            arcade.color.YELLOW,
+            (255, 218, 75),
             18,
             bold=True
         )
@@ -862,7 +1063,7 @@ class WhackGame(arcade.Window):
             f"WATER: {int(self.water_level * 100)}%",
             610,
             25,
-            (80, 200, 255),
+            WATER_BLUE,
             18,
             bold=True
         )
@@ -871,7 +1072,7 @@ class WhackGame(arcade.Window):
             "WATER WHACK",
             20,
             25,
-            arcade.color.WHITE,
+            TEXT_SOFT,
             24,
             bold=True
         )
@@ -882,24 +1083,18 @@ class WhackGame(arcade.Window):
             "← → to aim | Hold SPACE or CLICK to spray",
             20,
             530,
-            arcade.color.LIGHT_GRAY,
+            (180, 198, 214),
             12
         )
 
         # Timer
-        arcade.draw_lbwh_rectangle_filled(
-            600,
-            525,
-            180,
-            55,
-            (20, 20, 40)
-        )
+        draw_panel(600, 525, 180, 55)
 
         arcade.draw_text(
             f"TIME: {self.get_time_text()}",
             690,
             552,
-            arcade.color.WHITE,
+            TEXT_SOFT,
             18,
             anchor_x="center",
             anchor_y="center",
@@ -909,19 +1104,13 @@ class WhackGame(arcade.Window):
         # Game Over
         if self.game_over:
 
-            arcade.draw_lbwh_rectangle_filled(
-                200,
-                200,
-                400,
-                200,
-                (0, 0, 0)
-            )
+            draw_panel(200, 200, 400, 200, (13, 17, 25))
 
             arcade.draw_text(
                 "GAME OVER",
                 250,
                 330,
-                arcade.color.WHITE,
+                TEXT_SOFT,
                 40,
                 bold=True
             )
@@ -1143,6 +1332,7 @@ class WhackGame(arcade.Window):
     def update_water_stream(self, delta_time):
 
         if not self.spraying:
+            self.spray_particles = []
             return
 
         self.water_level = max(
@@ -1160,6 +1350,8 @@ class WhackGame(arcade.Window):
             self.game_over = True
             return
 
+        self.update_spray_particles()
+
         target_bot = self.get_spray_target()
 
         if target_bot is None:
@@ -1174,6 +1366,36 @@ class WhackGame(arcade.Window):
 
             self.score += POINTS_PER_DATA_CENTER
             self.bots.remove(target_bot)
+
+    # ─────────────────────────────────
+
+    def update_spray_particles(self):
+
+        target_x, target_y = HOLE_POSITIONS[self.current_tank]
+        spray_target = self.get_spray_target()
+
+        if spray_target is not None:
+            target_x = spray_target.x
+            target_y = spray_target.body_y
+
+        start_x = self.player_x + 30
+        start_y = self.player_y + 15
+        self.spray_particles = []
+
+        for _ in range(16):
+            progress = random.uniform(0.12, 0.96)
+            wave = math.sin(self.elapsed_time * 10 + progress * 8) * 5
+            jitter_x = random.uniform(-5, 5)
+            jitter_y = random.uniform(-5, 5)
+
+            self.spray_particles.append(
+                {
+                    "x": start_x + (target_x - start_x) * progress + jitter_x,
+                    "y": start_y + (target_y - start_y) * progress + wave + jitter_y,
+                    "size": random.uniform(1.5, 3.8),
+                    "color": random.choice((WATER_BLUE, WATER_LIGHT, (230, 250, 255)))
+                }
+            )
 
     # ─────────────────────────────────
 

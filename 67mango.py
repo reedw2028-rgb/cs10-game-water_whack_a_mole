@@ -30,7 +30,7 @@ NUM_HOLES = 4
 SHUTDOWN_LOSS_COUNT = 3
 WATER_FILL_SECONDS = 1.0
 WATER_DRAIN_PER_SECOND = 0.022
-REFILL_AMOUNT = 0.25
+REFILL_THRESHOLDS = [0.75, 0.50, 0.25]
 REFILL_OPTIONS = [
     {
         "name": "Ocean + Lake Pump",
@@ -245,7 +245,7 @@ class WhackGame(arcade.Window):
         self.spraying = False
         self.water_level = 1.0
         self.refill_choice_active = False
-        self.next_refill_threshold = 0.75
+        self.next_refill_index = 0
         self.eco_score = 50
         self.total_cost = 0
         self.local_water_damage = 0
@@ -274,10 +274,7 @@ class WhackGame(arcade.Window):
 
     def get_refill_warning_text(self):
 
-        threshold = int(self.next_refill_threshold * 100)
-
-        if threshold == 0:
-            return "WATER EMPTY"
+        threshold = int(REFILL_THRESHOLDS[self.next_refill_index] * 100)
 
         return f"WATER AT {threshold}%"
 
@@ -288,7 +285,12 @@ class WhackGame(arcade.Window):
         if self.refill_choice_active:
             return
 
-        if self.water_level <= self.next_refill_threshold:
+        if self.next_refill_index >= len(REFILL_THRESHOLDS):
+            return
+
+        threshold = REFILL_THRESHOLDS[self.next_refill_index]
+
+        if self.water_level <= threshold:
             self.refill_choice_active = True
             self.stop_spraying()
 
@@ -304,7 +306,6 @@ class WhackGame(arcade.Window):
 
         option = REFILL_OPTIONS[option_index]
 
-        self.water_level = min(1.0, self.water_level + REFILL_AMOUNT)
         self.eco_score = max(0, min(100, self.eco_score + option["eco"]))
         self.total_cost += option["cost"]
         self.local_water_damage = min(
@@ -313,8 +314,7 @@ class WhackGame(arcade.Window):
         )
         self.refills_used += 1
         self.refill_choice_active = False
-        next_threshold = self.water_level - REFILL_AMOUNT
-        self.next_refill_threshold = max(0.0, round(next_threshold * 4) / 4)
+        self.next_refill_index += 1
 
     # ─────────────────────────────────
 
@@ -676,7 +676,7 @@ class WhackGame(arcade.Window):
         )
 
         arcade.draw_text(
-            "Choose a refill source: press 1, 2, 3 or click",
+            "Choose a water plan: press 1, 2, 3 or click",
             400,
             395,
             arcade.color.LIGHT_GRAY,
@@ -1157,6 +1157,7 @@ class WhackGame(arcade.Window):
 
         if self.water_level <= 0:
             self.stop_spraying()
+            self.game_over = True
             return
 
         target_bot = self.get_spray_target()

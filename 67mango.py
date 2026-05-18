@@ -312,6 +312,7 @@ class WhackGame(arcade.Window):
         # Selected target hole
         self.current_tank = 0
 
+        self.intro_active = True
         self.reset()
 
     # ─────────────────────────────────
@@ -334,6 +335,7 @@ class WhackGame(arcade.Window):
         self.local_water_damage = 0
         self.refills_used = 0
         self.spray_particles = []
+        self.intro_active = True
 
     # ─────────────────────────────────
 
@@ -915,6 +917,94 @@ class WhackGame(arcade.Window):
 
     # ─────────────────────────────────
 
+    def draw_intro_popup(self):
+
+        if not self.intro_active:
+            return
+
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            0,
+            WINDOW_WIDTH,
+            WINDOW_HEIGHT,
+            (0, 0, 0, 165)
+        )
+
+        draw_panel(115, 120, 570, 360, (17, 24, 34))
+
+        arcade.draw_text(
+            "HOW TO PLAY",
+            400,
+            430,
+            TEXT_SOFT,
+            30,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+        intro_text = (
+            "A data center tech is using water to cool overheated servers. "
+            "Your job is to cool each data center fast, but use water wisely. "
+            "Every refill choice affects the cost, local water sources, and "
+            "the environment."
+        )
+
+        arcade.draw_text(
+            intro_text,
+            155,
+            350,
+            (205, 221, 234),
+            14,
+            width=490,
+            multiline=True,
+            align="center"
+        )
+
+        arcade.draw_text(
+            "CONTROLS",
+            400,
+            275,
+            (255, 218, 75),
+            18,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+        controls = (
+            "LEFT / RIGHT: Aim at a lane\n"
+            "Hold SPACE or MOUSE: Spray water\n"
+            "1, 2, 3 or CLICK: Pick a refill plan\n"
+            "Cool data centers before too many shut down."
+        )
+
+        arcade.draw_text(
+            controls,
+            400,
+            215,
+            TEXT_SOFT,
+            14,
+            anchor_x="center",
+            anchor_y="center",
+            width=430,
+            multiline=True,
+            align="center"
+        )
+
+        arcade.draw_text(
+            "Press SPACE, ENTER, or CLICK to start",
+            400,
+            150,
+            WATER_LIGHT,
+            15,
+            anchor_x="center",
+            anchor_y="center",
+            bold=True
+        )
+
+    # ─────────────────────────────────
+
     def on_draw(self):
 
         self.clear()
@@ -1132,10 +1222,14 @@ class WhackGame(arcade.Window):
             )
 
         self.draw_refill_menu()
+        self.draw_intro_popup()
 
     # ─────────────────────────────────
 
     def on_update(self, delta_time):
+
+        if self.intro_active:
+            return
 
         if self.game_over:
             return
@@ -1222,6 +1316,13 @@ class WhackGame(arcade.Window):
 
     def on_key_press(self, key, modifiers):
 
+        if self.intro_active:
+
+            if key in (arcade.key.SPACE, arcade.key.ENTER, arcade.key.RETURN):
+                self.intro_active = False
+
+            return
+
         if self.game_over:
 
             if key == arcade.key.SPACE:
@@ -1262,6 +1363,9 @@ class WhackGame(arcade.Window):
 
     def on_key_release(self, key, modifiers):
 
+        if self.intro_active:
+            return
+
         if self.refill_choice_active:
             return
 
@@ -1271,6 +1375,10 @@ class WhackGame(arcade.Window):
     # ─────────────────────────────────
 
     def on_mouse_press(self, x, y, button, modifiers):
+
+        if self.intro_active:
+            self.intro_active = False
+            return
 
         if self.game_over:
 

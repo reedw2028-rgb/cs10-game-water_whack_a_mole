@@ -14,7 +14,7 @@ Water Whack-a-Mole is a whack-a-mole inspired shooter game where players spray w
 
 ## Justifications
 
-On our design we 
+On our design doc we had a section for 
 
 
 ## How to Install & Play

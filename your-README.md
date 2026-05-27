@@ -3,8 +3,8 @@
 ---
 
 # Your Game Title Here
-
-**Group Members:** [List all group member names here]
+Water Whack-a-Mole
+**Group Members:** [Reed, Jacobo]
 
 ## Description
 

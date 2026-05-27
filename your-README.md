@@ -8,7 +8,7 @@ Water Whack-a-Mole
 
 ## Description
 
-[Write a short description of your game here. What is it about? What makes it fun?]
+Our game is a whack-a-mole inspired shooter game where the player must spray water at overheating data centers in a fast paced, fun, and 
 
 ## Screenshots
 

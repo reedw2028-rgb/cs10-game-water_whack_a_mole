@@ -14,7 +14,7 @@ Water Whack-a-Mole is a whack-a-mole inspired shooter game where players spray w
 
 ## Justifications
 
-On our design doc we had a section for information on the water, but in our game we didn't decided to add that. 
+On our design doc we had a section for information on the water, but in our game we didn't decided to add that due to the codex bot not understanding, so we decided to pivot to were after you lose 75% of your water you can choose from three options about the water you use. 
 
 
 ## How to Install & Play

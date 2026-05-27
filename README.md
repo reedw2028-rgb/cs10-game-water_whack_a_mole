@@ -12,6 +12,11 @@ Water Whack-a-Mole is a whack-a-mole inspired shooter game where players spray w
 | --- | --- | --- |
 | ![Water Whack-a-Mole gameplay screenshot](1.png) | ![Water Whack-a-Mole challenge screenshot](2.png) | ![Water Whack-a-Mole score screenshot](3.png) |
 
+## Justifications
+
+On our design
+
+
 ## How to Install & Play
 
 Simply download the game executable for your operating system and double-click it to play. No installation required!

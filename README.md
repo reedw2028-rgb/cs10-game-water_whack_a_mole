@@ -1,19 +1,16 @@
-**Note:** Delete the template README.md file and rename this file to README.md before submitting.
+# Water Whack-a-Mole
 
----
-
-# Your Game Title Here
-
-**Group Members:** [Reed And Jacobo]
+**Group Members:** Reed and Jacobo
 
 ## Description
 
-[Write a short description of your game here. What is it about? What makes it fun?In READ]
+Water Whack-a-Mole is a whack-a-mole inspired shooter game where players spray water at overheating data centers. It is fast-paced, educational, and built around balancing environmental impact with upgrades and high scores.
 
 ## Screenshots
 
-[Add 2-3 screenshots of your game in action here. You can embed images using:
-`![Screenshot description](path/to/screenshot.png)`]
+| Gameplay | Challenge | Score |
+| --- | --- | --- |
+| ![Water Whack-a-Mole gameplay screenshot](1.png) | ![Water Whack-a-Mole challenge screenshot](2.png) | ![Water Whack-a-Mole score screenshot](3.png) |
 
 ## How to Install & Play
 

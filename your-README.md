@@ -2,8 +2,7 @@
 
 ---
 
-# Your Game Title Here
-Water Whack-a-Mole
+# Water Whack-a-Mole
 **Group Members:** [Reed, Jacobo]
 
 ## Description

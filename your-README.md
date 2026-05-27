@@ -8,7 +8,7 @@ Water Whack-a-Mole
 
 ## Description
 
-Our game is a whack-a-mole inspired shooter game where the player must spray water at overheating data centers in a fast paced, fun, and educational setting, the user has to balance the environment while also maximizing effeciency and 
+Our game is a whack-a-mole inspired shooter game where the player must spray water at overheating data centers in a fast paced, fun, and educational setting, the user has to balance the environment while also maximizing effeciency and damage when given the option for upgrades.
 
 ## Screenshots
 

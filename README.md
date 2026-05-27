@@ -8,7 +8,7 @@
 
 ## Description
 
-[Write a short description of your game here. What is it about? What makes it fun?]
+[Write a short description of your game here. What is it about? What makes it fun?In READ]
 
 ## Screenshots
 

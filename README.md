@@ -22,7 +22,7 @@ On our design doc we had a section for information on the water, but in our game
 Simply download the game executable for your operating system and double-click it to play. No installation required!
 
 Mac:
-dist/Water Whack-a-Mole-mac.zip
+[Download for Mac](https://github.com/reedw2028-rgb/cs10-game-water_whack_a_mole/raw/main/dist/Water%20Whack-a-Mole-mac.zip)
 
 Windows:
 Your link here

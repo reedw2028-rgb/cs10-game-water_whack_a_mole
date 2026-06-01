@@ -14,7 +14,7 @@ Water Whack-a-Mole is a whack-a-mole inspired shooter game where players spray w
 
 ## Justifications
 
-On our design doc we had a section for information on the water, but in our game we didn't decided to add that due to the codex bot not understanding, so we decided to pivot to were after you lose 75% of your water you can choose from three options about the water you use. 
+On our design doc we had a section for information on the water, but in our game we didn't decided to add that due to the codex bot not understanding, so we decided to pivot to were after you lose 75% of your water you can choose from three options about the water you use.
 
 
 ## How to Install & Play
@@ -22,7 +22,7 @@ On our design doc we had a section for information on the water, but in our game
 Simply download the game executable for your operating system and double-click it to play. No installation required!
 
 Mac:
-Your link here
+dist/Water Whack-a-Mole-mac.zip
 
 Windows:
 Your link here

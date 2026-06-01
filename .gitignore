@@ -11,6 +11,11 @@ env/
 .pytest_cache/
 .mypy_cache/
 
+# Packaged app builds
+build/
+dist/
+*.spec
+
 # OS/editor files
 .DS_Store
 .vscode/

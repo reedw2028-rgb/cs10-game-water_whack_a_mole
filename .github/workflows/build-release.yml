@@ -1,0 +1,108 @@
+name: Build Standalone Downloads
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build app
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          sep = ";" if os.name == "nt" else ":"
+          cmd = [
+              sys.executable,
+              "-m",
+              "PyInstaller",
+              "--noconfirm",
+              "--clean",
+              "--windowed",
+              "--name",
+              "Water Whack-a-Mole",
+              "--add-data",
+              f"1.png{sep}.",
+              "--add-data",
+              f"2.png{sep}.",
+              "--add-data",
+              f"3.png{sep}.",
+              "67mango.py",
+          ]
+
+          if os.name == "nt":
+              cmd.insert(6, "--onefile")
+
+          subprocess.run(cmd, check=True)
+          PY
+
+      - name: Package Mac app
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "dist/Water Whack-a-Mole.app" "Water-Whack-a-Mole-mac.zip"
+
+      - name: Package Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\Water Whack-a-Mole.exe" -DestinationPath "Water-Whack-a-Mole-windows.zip" -Force
+
+      - name: Upload Mac artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Water-Whack-a-Mole-mac
+          path: Water-Whack-a-Mole-mac.zip
+
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Water-Whack-a-Mole-windows
+          path: Water-Whack-a-Mole-windows.zip
+
+  release:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**/*.zip
